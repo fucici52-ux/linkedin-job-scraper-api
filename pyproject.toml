@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "job-scraper"
+version = "0.1.0"
+description = "A configurable, polite job listing scraper."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12,<5",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "lxml>=5,<6",
+  "pydantic-settings>=2.5,<3",
+  "tenacity>=9,<10",
+  "uvicorn>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+  "pytest-asyncio>=0.24,<1",
+  "ruff>=0.6,<1",
+]
+
+[project.scripts]
+job-scraper = "job_scraper.cli:main"
+job-scraper-api = "job_scraper.api:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/job_scraper"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

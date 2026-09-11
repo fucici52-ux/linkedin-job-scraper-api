@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: linkedin-job-scraper-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn --app-dir src job_scraper.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: SCRAPER_MAX_RESULTS
+        value: 25
+      - key: SCRAPER_REQUEST_DELAY_SECONDS
+        value: 1
+      - key: SCRAPER_REQUEST_TIMEOUT_SECONDS
+        value: 20
+
