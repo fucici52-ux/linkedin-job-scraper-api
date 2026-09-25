@@ -6,4 +6,5 @@ pydantic>=2.9,<3
 pydantic-settings>=2.5,<3
 tenacity>=9,<10
 uvicorn>=0.30,<1
-
+python-jobspy==1.1.82
+ats-scrapers[scrapers]==0.3.0

@@ -1,20 +1,23 @@
-# Job Scraper
+# Career Match Job Retrieval API
 
-A deliberately small Python experiment that collects metadata from LinkedIn's publicly
-accessible, logged-out job search page and writes normalized JSON. It does not sign in,
-use private APIs, rotate identities, solve CAPTCHAs, or retry access-control responses.
+A FastAPI retrieval layer for Career Match AI. JobSpy queries public job boards independently,
+while ats-scrapers queries ATS/company-career sources. A failure from one provider is recorded
+without discarding valid results from the others.
 
 ## Architecture
 
 ```text
-CLI / HTTP API -> collection service -> JobSource contract -> LinkedInPublicSource
-                                      -> JobListing model -> JSON response/file
+HTTP API -> concurrent retrieval -> JobSpy (Indeed/Google/ZipRecruiter/LinkedIn)
+                              \----> ats-scrapers (Greenhouse/Lever/Ashby/Workday/SmartRecruiters)
+         -> normalize -> deduplicate -> JobListing JSON
 ```
 
 - `models.py` defines the source-independent output shape.
 - `sources/base.py` defines the contract future sources should follow.
-- `sources/linkedin_public.py` owns all LinkedIn-specific HTTP and HTML parsing logic.
-- `service.py` combines keyword searches and removes duplicate URLs.
+- `sources/jobspy.py` and `sources/ats.py` isolate provider APIs.
+- `service.py` applies per-source timeouts/retries and preserves partial results.
+- `normalize.py` converts both provider schemas and removes duplicates by canonical URL and
+  normalized title/company/location.
 - `api.py` validates n8n requests and returns the normalized response.
 - `cli.py` handles user input and file output, without knowing LinkedIn's HTML structure.
 
@@ -77,10 +80,10 @@ job-scraper-api
 The endpoint is `http://localhost:8000/api/jobs`. Interactive API documentation is available
 at `http://localhost:8000/docs`.
 
-PowerShell-friendly curl test (use `curl.exe`, not PowerShell's `curl` alias):
+The legacy single-location request remains supported. `locations` accepts up to three locations:
 
 ```powershell
-curl.exe -X POST "http://localhost:8000/api/jobs" -H "Content-Type: application/json" -d '{"keywords":["AI","Data Analyst"],"location":"Vancouver","max_results":10}'
+curl.exe -X POST "http://localhost:8000/api/jobs" -H "Content-Type: application/json" -d '{"keywords":["AI Product Intern","Product Operations Intern","Business Analyst Intern","Data Strategy Intern"],"locations":["Vancouver","Toronto","Remote Canada"],"max_results":15}'
 ```
 
 For n8n, create an **HTTP Request** node with method `POST`, URL
