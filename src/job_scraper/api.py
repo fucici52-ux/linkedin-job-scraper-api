@@ -1,5 +1,7 @@
 import os
 import uuid
+import logging
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Header
@@ -8,8 +10,24 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from job_scraper.config import settings
 from job_scraper.models import JobListing, SourceStat
 from job_scraper.service import collect_jobs
+from job_scraper.sources import jobspy
 
-app = FastAPI(title="Job Retrieval API", version="0.2.0")
+log = logging.getLogger("job_scraper.api")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        jobspy.warmup()
+        log.info("jobspy_warmup_complete")
+    except Exception as error:
+        # Health checks and structured API responses remain available even if
+        # an optional retrieval dependency is misconfigured.
+        log.error("jobspy_warmup_failed error_type=%s", type(error).__name__)
+    yield
+
+
+app = FastAPI(title="Job Retrieval API", version="0.2.0", lifespan=lifespan)
 
 
 class JobRequest(BaseModel):

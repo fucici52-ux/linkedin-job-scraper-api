@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     source_timeout_seconds: float = 12.0
     ats_timeout_seconds: float = 18.0
     source_attempts: int = 2
-    source_concurrency: int = 12
+    source_concurrency: int = 4
     enable_ats_dataset: bool = False
     output_dir: Path = Path("data")
 
