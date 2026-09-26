@@ -26,7 +26,8 @@ async def _bounded_call(
     last_error: Exception | None = None
     for attempt in range(1, settings.source_attempts + 1):
         try:
-            rows = await asyncio.wait_for(asyncio.to_thread(operation), timeout=settings.source_timeout_seconds)
+            timeout = settings.ats_timeout_seconds if source.startswith("ats:") else settings.source_timeout_seconds
+            rows = await asyncio.wait_for(asyncio.to_thread(operation), timeout=timeout)
             latency = int((monotonic() - started) * 1000)
             log.info("source_complete source=%s attempt=%s rows=%s latency_ms=%s", source, attempt, len(rows), latency)
             return rows, SourceStat(source=source, keyword=keyword, location=location, status="ok", raw_jobs=len(rows), attempts=attempt, latency_ms=latency)
@@ -61,9 +62,21 @@ async def collect_jobs(
             for site in jobspy.SITES:
                 tasks.append(limited(f"jobspy:{site}", keyword, location, lambda s=site, k=keyword, loc=location: jobspy.search(s, k, loc, per_query_limit), settings))
                 descriptors.append(("jobspy", site))
-            for ats_name in ats.ATS_SOURCES:
-                tasks.append(limited(f"ats:{ats_name}", keyword, location, lambda a=ats_name, k=keyword, loc=location: ats.search_dataset(a, k, loc, per_query_limit), settings))
-                descriptors.append(("ats", ats_name))
+    # The hosted ATS dataset is partitioned by ATS. Download each slice once,
+    # then deterministically apply every keyword-location combination locally.
+    for ats_name in ats.ATS_SOURCES:
+        tasks.append(
+            limited(
+                f"ats:{ats_name}",
+                " | ".join(keywords),
+                " | ".join(locations),
+                lambda a=ats_name: ats.search_dataset_bulk(
+                    a, keywords, locations, per_query_limit
+                ),
+                settings,
+            )
+        )
+        descriptors.append(("ats", ats_name))
     for url in company_career_urls:
         tasks.append(limited("ats:direct", "", "", lambda u=url: ats.search_company(u), settings))
         descriptors.append(("ats", "direct"))
