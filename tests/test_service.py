@@ -46,6 +46,27 @@ async def test_all_twelve_keyword_location_pairs_are_dispatched(monkeypatch) -> 
 
 
 @pytest.mark.asyncio
+async def test_each_ats_slice_is_loaded_once_for_all_combinations(monkeypatch) -> None:
+    monkeypatch.setattr(service.jobspy, "SITES", ())
+    monkeypatch.setattr(service.ats, "ATS_SOURCES", ("greenhouse", "lever"))
+    calls: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = []
+
+    def fake_bulk(ats_name, keywords, locations, limit):
+        calls.append((ats_name, tuple(keywords), tuple(locations)))
+        return []
+
+    monkeypatch.setattr(service.ats, "search_dataset_bulk", fake_bulk)
+    keywords = ["AI Product Intern", "Business Analyst Intern"]
+    locations = ["Vancouver", "Toronto", "Remote Canada"]
+    await service.collect_jobs(keywords, locations, 15, [], make_settings())
+
+    assert set(calls) == {
+        ("greenhouse", tuple(keywords), tuple(locations)),
+        ("lever", tuple(keywords), tuple(locations)),
+    }
+
+
+@pytest.mark.asyncio
 async def test_timeout_is_reported_without_raising(monkeypatch) -> None:
     monkeypatch.setattr(service.jobspy, "SITES", ("indeed",))
     monkeypatch.setattr(service.ats, "ATS_SOURCES", ())
