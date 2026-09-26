@@ -16,10 +16,12 @@ services:
       - key: SCRAPER_REQUEST_TIMEOUT_SECONDS
         value: 20
       - key: SCRAPER_SOURCE_TIMEOUT_SECONDS
-        value: 7
+        value: 15
       - key: SCRAPER_ATS_TIMEOUT_SECONDS
         value: 18
       - key: SCRAPER_SOURCE_ATTEMPTS
         value: 2
       - key: SCRAPER_SOURCE_CONCURRENCY
-        value: 24
+        value: 12
+      - key: SCRAPER_ENABLE_ATS_DATASET
+        value: false
