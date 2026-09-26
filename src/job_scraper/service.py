@@ -34,6 +34,11 @@ async def _bounded_call(
         except Exception as error:
             last_error = error
             log.warning("source_failed source=%s attempt=%s error_type=%s", source, attempt, type(error).__name__)
+            # asyncio.to_thread cannot stop the underlying blocking scraper.
+            # Starting another copy after our deadline only leaves more work
+            # running in the background and makes the whole request less stable.
+            if isinstance(error, TimeoutError):
+                break
             if attempt < settings.source_attempts:
                 await asyncio.sleep(min(2.0, 0.4 * (2 ** (attempt - 1))) + random.uniform(0, 0.25))
     latency = int((monotonic() - started) * 1000)
@@ -56,24 +61,24 @@ async def collect_jobs(
 
     tasks = []
     descriptors: list[tuple[str, str]] = []
-    # Twelve keyword-location combinations still provide up to 36 candidates;
-    # keeping each board query shallow prevents slow sites from exhausting the
-    # synchronous n8n request window.
+    # Keep every board independent: a blocked/slow board must not discard rows
+    # already returned by another board for the same keyword/location pair.
     per_query_limit = min(3, max_results)
     for keyword in keywords:
         for location in locations:
-            tasks.append(
-                limited(
-                    "jobspy:multi",
-                    keyword,
-                    location,
-                    lambda k=keyword, loc=location: jobspy.search_many(
-                        jobspy.SITES, k, loc, per_query_limit
-                    ),
-                    settings,
+            for site in jobspy.SITES:
+                tasks.append(
+                    limited(
+                        f"jobspy:{site}",
+                        keyword,
+                        location,
+                        lambda s=site, k=keyword, loc=location: jobspy.search(
+                            s, k, loc, per_query_limit
+                        ),
+                        settings,
+                    )
                 )
-            )
-            descriptors.append(("jobspy", "multi"))
+                descriptors.append(("jobspy", site))
     # The hosted ATS dataset is partitioned by ATS. Download each slice once,
     # then deterministically apply every keyword-location combination locally.
     if settings.enable_ats_dataset:
