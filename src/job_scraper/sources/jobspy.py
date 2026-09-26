@@ -5,6 +5,11 @@ from typing import Any
 SITES = ("indeed", "google", "zip_recruiter", "linkedin")
 
 
+def warmup() -> None:
+    """Load JobSpy and pandas once during process startup, not in user requests."""
+    from jobspy import scrape_jobs  # noqa: F401
+
+
 def search(site: str, keyword: str, location: str, limit: int) -> list[dict[str, Any]]:
     from jobspy import scrape_jobs
 
