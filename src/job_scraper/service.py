@@ -56,7 +56,10 @@ async def collect_jobs(
 
     tasks = []
     descriptors: list[tuple[str, str]] = []
-    per_query_limit = max(3, min(10, max_results))
+    # Twelve keyword-location combinations still provide up to 36 candidates;
+    # keeping each board query shallow prevents slow sites from exhausting the
+    # synchronous n8n request window.
+    per_query_limit = min(3, max_results)
     for keyword in keywords:
         for location in locations:
             tasks.append(

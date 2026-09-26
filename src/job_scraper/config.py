@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = 20.0
     request_delay_seconds: float = 1.0
     max_results: int = 25
-    source_timeout_seconds: float = 15.0
+    source_timeout_seconds: float = 20.0
     ats_timeout_seconds: float = 18.0
     source_attempts: int = 2
     source_concurrency: int = 12
