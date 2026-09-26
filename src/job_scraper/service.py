@@ -59,24 +59,34 @@ async def collect_jobs(
     per_query_limit = max(3, min(10, max_results))
     for keyword in keywords:
         for location in locations:
-            for site in jobspy.SITES:
-                tasks.append(limited(f"jobspy:{site}", keyword, location, lambda s=site, k=keyword, loc=location: jobspy.search(s, k, loc, per_query_limit), settings))
-                descriptors.append(("jobspy", site))
+            tasks.append(
+                limited(
+                    "jobspy:multi",
+                    keyword,
+                    location,
+                    lambda k=keyword, loc=location: jobspy.search_many(
+                        jobspy.SITES, k, loc, per_query_limit
+                    ),
+                    settings,
+                )
+            )
+            descriptors.append(("jobspy", "multi"))
     # The hosted ATS dataset is partitioned by ATS. Download each slice once,
     # then deterministically apply every keyword-location combination locally.
-    for ats_name in ats.ATS_SOURCES:
-        tasks.append(
-            limited(
-                f"ats:{ats_name}",
-                " | ".join(keywords),
-                " | ".join(locations),
-                lambda a=ats_name: ats.search_dataset_bulk(
-                    a, keywords, locations, per_query_limit
-                ),
-                settings,
+    if settings.enable_ats_dataset:
+        for ats_name in ats.ATS_SOURCES:
+            tasks.append(
+                limited(
+                    f"ats:{ats_name}",
+                    " | ".join(keywords),
+                    " | ".join(locations),
+                    lambda a=ats_name: ats.search_dataset_bulk(
+                        a, keywords, locations, per_query_limit
+                    ),
+                    settings,
+                )
             )
-        )
-        descriptors.append(("ats", ats_name))
+            descriptors.append(("ats", ats_name))
     for url in company_career_urls:
         tasks.append(limited("ats:direct", "", "", lambda u=url: ats.search_company(u), settings))
         descriptors.append(("ats", "direct"))

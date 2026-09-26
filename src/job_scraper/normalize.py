@@ -59,7 +59,8 @@ def normalize_jobspy(row: dict[str, Any], source: str) -> JobListing | None:
     title, company = text(row.get("title")), text(row.get("company"))
     if not (url and title and company):
         return None
-    return JobListing(title=title, company=company, location=location_text(row.get("location")), description=text(row.get("description")), job_url=url, posted_date=posted_date(row.get("date_posted")), source=source)
+    actual_source = text(row.get("site")) or source
+    return JobListing(title=title, company=company, location=location_text(row.get("location")), description=text(row.get("description")), job_url=url, posted_date=posted_date(row.get("date_posted")), source=actual_source)
 
 
 def normalize_ats(row: dict[str, Any], source: str) -> JobListing | None:
