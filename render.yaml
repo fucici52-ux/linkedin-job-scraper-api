@@ -22,6 +22,6 @@ services:
       - key: SCRAPER_SOURCE_ATTEMPTS
         value: 2
       - key: SCRAPER_SOURCE_CONCURRENCY
-        value: 12
+        value: 4
       - key: SCRAPER_ENABLE_ATS_DATASET
         value: false
